@@ -18,9 +18,15 @@ The configuration space is a **fixed enum of 7 named patterns**, so "parsing" is
 - **Data source:** daily auto-scrape **+ manual override** (override always wins).
 - **Parsing:** heuristics first (keyword → enum); cheap Haiku call only as fallback; degrades gracefully without an API key.
 - **Tracker + conventions:** this file + the root `CLAUDE.md`.
-- **SVG assets:** 7 semantic files under `public/tower/` — `white.svg`, `orange-top.svg`, `orange.svg`,
-  `orange-no1.svg`, `orange-special.svg`, `darkened-cap.svg`, `dark.svg`. All share an identical
-  `viewBox` + base geometry; only fills/overlays differ (author from one master to prevent drift).
+- **SVG assets:** 7 semantic configs, each in a **light and a dark set** under
+  `public/tower/light/<slug>.svg` and `public/tower/dark/<slug>.svg` (slugs: `white`, `orange-top`,
+  `orange`, `orange-no1`, `orange-special`, `darkened-cap`, `dark`). All share an identical `viewBox`
+  + base geometry; only fills/overlays/theme differ (author from one master to prevent drift). The
+  orange configs may be byte-identical across light/dark since they read fine on either background.
+- **Embed theme control:** `data-tower-theme` = `light` (default) | `dark` | `auto`. `auto` follows
+  the visitor's device via `prefers-color-scheme` and re-points the `<img>` on OS theme change;
+  `light`/`dark` force it (for sites with a fixed background regardless of device). Orthogonal to the
+  existing `data-color` (which tints the webring icon) and to the lighting config (scrape-driven).
 - **Local testing:** a minimal **dev-only** route `/dev/embed-preview`, guarded to 404 in production.
 - **Sequencing:** harness & visual first, automation last.
 
@@ -55,8 +61,9 @@ Created root `CLAUDE.md` and this tracker. No feature code.
 
 ### Phase 1 — Local dev preview route (harness) — TODO
 - `src/app/dev/embed-preview/page.tsx` (`'use client'`): inject `<script src="/embed.js" data-webring ...>`
-  same-origin; controls for `data-color`, `data-arrow`, sizes, background swatches, plus a
-  (not-yet-functional) `data-tower` toggle. Remount via `key` on config change so the IIFE re-runs.
+  same-origin; controls for `data-color`, `data-arrow`, sizes, background swatches, plus
+  (not-yet-functional) `data-tower` and `data-tower-theme` (`light`/`dark`/`auto`) toggles. Remount
+  via `key` on config change so the IIFE re-runs.
   Guard: `if (process.env.NODE_ENV === 'production') notFound()`.
 - **Acceptance:** `npm run dev` → `/dev/embed-preview` shows a live embed updating with the controls; 404s in a production build.
 
@@ -68,13 +75,19 @@ Created root `CLAUDE.md` and this tracker. No feature code.
 - **Acceptance:** types compile; `getCurrentLighting()` returns the seeded white config.
 
 ### Phase 3 — Tower SVG assets + embed rendering — TODO
-- Add the 7 `public/tower/*.svg` (shared viewBox/geometry; fills + overlays for the "No. 1" numeral and special-effects glow differ).
+- Add the light + dark sets: `public/tower/light/<slug>.svg` and `public/tower/dark/<slug>.svg`
+  (shared viewBox/geometry; fills + overlays for the "No. 1" numeral and special-effects glow differ).
 - `src/app/embed.js/route.ts`: import `getCurrentLighting()` server-side, inline resolved state into the
   generated script (no extra client fetch; route is `max-age=300`). Render the tower **only when
-  `scriptTag.getAttribute('data-tower')` is present**, as `<img src=baseUrl + '/tower/<slug>.svg'>`
+  `scriptTag.getAttribute('data-tower')` is present**, as `<img src=baseUrl + '/tower/' + theme + '/' + slug + '.svg'>`
   with `title` = label + reason, beside the center icon. Existing embeds untouched.
-- Wire the `data-tower` toggle in the Phase 1 preview route.
-- **Acceptance:** preview with `data-tower` shows correct tower for `state.json`; without it, embeds unchanged.
+- **Theme resolution:** read `data-tower-theme` (default `light`). For `auto`, resolve via
+  `window.matchMedia('(prefers-color-scheme: dark)')` and add a `change` listener that re-points the
+  `<img src>` when the device theme flips; for `light`/`dark`, use it directly.
+- Wire the `data-tower` toggle **and** a theme selector (`light`/`dark`/`auto`) + background swatches in
+  the Phase 1 preview route.
+- **Acceptance:** preview shows the correct tower for `state.json` in each theme; `auto` flips with the
+  OS theme; default (no `data-tower-theme`) renders light; without `data-tower`, embeds unchanged.
 
 ### Phase 4 — Scraper + classifier — TODO
 - `scripts/update-tower-lighting.mjs` (mirror `apply-approved-request.mjs`): fetch latest entry + body;
