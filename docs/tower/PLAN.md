@@ -59,7 +59,11 @@ Status: `TODO` / `IN PROGRESS` / `DONE`.
 ### Phase 0 — Foundations (docs only) — DONE
 Created root `CLAUDE.md` and this tracker. No feature code.
 
-### Phase 1 — Local dev preview route (harness) — TODO
+### Phase 1 — Local dev preview route (harness) — DONE
+Built `src/app/dev/embed-preview/page.tsx`: a keyed-remount `<EmbedInjector>` re-runs `/embed.js` on
+each config change; controls drive color/arrow/sizes + stage-background swatches, and the inert
+`data-tower`/`data-tower-theme` toggles are wired for Phase 3. Verified: dev serves 200, production
+build 404s the route (`notFound()` guard), embeds render, lint clean for this file.
 - `src/app/dev/embed-preview/page.tsx` (`'use client'`): inject `<script src="/embed.js" data-webring ...>`
   same-origin; controls for `data-color`, `data-arrow`, sizes, background swatches, plus
   (not-yet-functional) `data-tower` and `data-tower-theme` (`light`/`dark`/`auto`) toggles. Remount
